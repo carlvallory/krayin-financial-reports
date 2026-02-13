@@ -1,0 +1,25 @@
+{
+    "name": "carlvallory/krayin-financial-reports",
+    "description": "Financial Reports Dashboard for Krayin CRM",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Carl Vallory",
+            "email": "carl@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "CarlVallory\\KrayinFinancialReports\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "CarlVallory\\KrayinFinancialReports\\Providers\\KrayinFinancialReportsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {}
+}
