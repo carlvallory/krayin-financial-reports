@@ -1,78 +1,93 @@
-@extends('admin::layouts.master')
+<x-admin::layouts>
+    <x-slot:title>
+        Informes Financieros
+    </x-slot>
 
-@section('page_title')
-    Informes Financieros
-@endsection
-
-@section('content-wrapper')
-    <div class="content full-page">
-        <div class="page-header">
-            <div class="page-title">
-                <h1>Informes Financieros ({{ date('Y') }})</h1>
-            </div>
+    <div class="flex items-center justify-between gap-4 max-sm:flex-wrap mb-5">
+        <div class="grid gap-1.5">
+            <p class="text-2xl font-semibold dark:text-white">
+                Informes Financieros ({{ date('Y') }})
+            </p>
         </div>
+    </div>
 
-        <div class="page-content">
+    <div class="mt-3.5 flex gap-4 max-xl:flex-wrap">
+        <div class="flex flex-1 flex-col gap-4 max-xl:flex-auto">
             
             <!-- KPI Cards -->
-            <div class="dashboard-stats">
-                <div class="dashboard-card">
-                    <div class="title">Ingresos Totales (Año)</div>
-                    <div class="data text-success">{{ core()->formatBasePrice($totalRevenue) }}</div>
+            <div class="flex gap-4 max-sm:flex-wrap">
+                <!-- Revenue Stats -->
+                <div class="relative flex flex-1 flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between gap-2.5">
+                        <p class="text-base font-semibold text-gray-600 dark:text-gray-300">Ingresos Totales (Año)</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 overflow-hidden text-3xl font-bold text-gray-800 dark:text-white">
+                        {{ core()->formatBasePrice($totalRevenue) }}
+                    </div>
                 </div>
 
-                <div class="dashboard-card">
-                    <div class="title">Ventas Ganadas</div>
-                    <div class="data">{{ $totalWonLeads }}</div>
+                <!-- Won Leads Stats -->
+                <div class="relative flex flex-1 flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between gap-2.5">
+                        <p class="text-base font-semibold text-gray-600 dark:text-gray-300">Ventas Ganadas</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 overflow-hidden text-3xl font-bold text-gray-800 dark:text-white">
+                        {{ $totalWonLeads }}
+                    </div>
                 </div>
 
-                <div class="dashboard-card">
-                    <div class="title">Ingresos Este Mes</div>
-                    <div class="data text-primary">{{ core()->formatBasePrice($thisMonthRevenue) }}</div>
+                <!-- Monthly Stats -->
+                <div class="relative flex flex-1 flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between gap-2.5">
+                        <p class="text-base font-semibold text-gray-600 dark:text-gray-300">Ingresos Este Mes</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 overflow-hidden text-3xl font-bold text-gray-800 dark:text-white">
+                        {{ core()->formatBasePrice($thisMonthRevenue) }}
+                    </div>
                 </div>
             </div>
 
             <!-- Chart Section -->
-            <div class="panel graph-widget">
-                <div class="panel-header">
-                    <h3>Ventas Mensuales</h3>
+            <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                    <p class="text-base font-semibold text-gray-800 dark:text-white">Ventas Mensuales</p>
                 </div>
-                <div class="panel-body">
+                <div class="p-4">
                     <canvas id="monthlySalesChart" style="width: 100%; height: 300px;"></canvas>
                 </div>
             </div>
 
             <!-- Recent Won Leads Table -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h3>Últimas 5 Ventas</h3>
+            <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                    <p class="text-base font-semibold text-gray-800 dark:text-white">Últimas 5 Ventas</p>
                 </div>
-                <div class="panel-body">
+                <div class="p-4">
                     <div class="table">
-                        <table>
-                            <thead>
+                        <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                            <thead class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Título</th>
-                                    <th>Valor</th>
-                                    <th>Fecha Cierre</th>
-                                    <th>Responsable</th>
+                                    <th class="px-4 py-3 font-medium">ID</th>
+                                    <th class="px-4 py-3 font-medium">Título</th>
+                                    <th class="px-4 py-3 font-medium">Valor</th>
+                                    <th class="px-4 py-3 font-medium">Fecha Cierre</th>
+                                    <th class="px-4 py-3 font-medium">Responsable</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($recentLeads as $lead)
-                                    <tr>
-                                        <td>#{{ $lead->id }}</td>
-                                        <td>
-                                            <a href="{{ route('admin.leads.view', $lead->id) }}">{{ $lead->title }}</a>
+                                    <tr class="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950">
+                                        <td class="px-4 py-3">#{{ $lead->id }}</td>
+                                        <td class="px-4 py-3">
+                                            <a href="{{ route('admin.leads.view', $lead->id) }}" class="text-blue-600 hover:underline dark:text-blue-400">{{ $lead->title }}</a>
                                         </td>
-                                        <td>{{ core()->formatBasePrice($lead->lead_value) }}</td>
-                                        <td>{{ $lead->created_at->format('d M Y') }}</td>
-                                        <td>{{ $lead->user ? $lead->user->name : '-' }}</td>
+                                        <td class="px-4 py-3">{{ core()->formatBasePrice($lead->lead_value) }}</td>
+                                        <td class="px-4 py-3">{{ $lead->created_at->format('d M Y') }}</td>
+                                        <td class="px-4 py-3">{{ $lead->user ? $lead->user->name : '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5">No hay ventas registradas este año.</td>
+                                        <td colspan="5" class="px-4 py-3 text-center">No hay ventas registradas este año.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -114,4 +129,4 @@
             });
         </script>
     @endpush
-@endsection
+</x-admin::layouts>
