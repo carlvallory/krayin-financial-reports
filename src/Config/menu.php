@@ -6,6 +6,6 @@ return [
         'name'       => 'Informes',
         'route'      => 'admin.financial_reports.index',
         'sort'       => 2,
-        'icon-class' => 'icon-sales', // Using icon-sales or similar, or dashboard
+        'icon-class' => 'icon-settings', // Using existing icon for now to ensure visibility
     ]
 ];
