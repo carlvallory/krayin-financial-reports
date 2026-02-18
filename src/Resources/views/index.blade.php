@@ -56,14 +56,7 @@
             </div>
 
             <!-- Chart Section -->
-            <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" v-pre>
-                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-                    <p class="text-base font-semibold text-gray-800 dark:text-white">Ventas Mensuales</p>
-                </div>
-                <div class="p-4 relative" style="height: 300px;">
-                    <canvas id="monthlySalesChart"></canvas>
-                </div>
-            </div>
+            <v-monthly-sales-chart></v-monthly-sales-chart>
 
             <!-- Custom Sections -->
             @if(isset($customSections) && count($customSections) > 0)
@@ -152,59 +145,83 @@
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                const ctx = document.getElementById('monthlySalesChart').getContext('2d');
-                
-                // Destroy existing chart if any (though this is page load)
-                if (window.myMonthlyChart) {
-                    window.myMonthlyChart.destroy();
-                }
+        
+        <script type="text/x-template" id="v-monthly-sales-chart-template">
+            <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                    <p class="text-base font-semibold text-gray-800 dark:text-white">Ventas Mensuales</p>
+                </div>
+                <div class="p-4 relative" style="height: 300px;">
+                    <canvas ref="chartCanvas"></canvas>
+                </div>
+            </div>
+        </script>
 
-                window.myMonthlyChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-                        datasets: [{
-                            label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
-                            data: @json($chartData),
-                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 1,
-                            barPercentage: 0.6,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'
-                                },
-                                ticks: {
-                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
-                                }
-                            }
-                        }
+        <script type="module">
+            app.component('v-monthly-sales-chart', {
+                template: '#v-monthly-sales-chart-template',
+
+                data() {
+                    return {
+                        chart: undefined,
+                        chartData: @json($chartData),
                     }
-                });
+                },
+
+                mounted() {
+                    this.prepare();
+                },
+
+                methods: {
+                    prepare() {
+                        const ctx = this.$refs.chartCanvas.getContext('2d');
+                        
+                        this.chart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                                datasets: [{
+                                    label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
+                                    data: this.chartData,
+                                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                                    borderColor: 'rgba(59, 130, 246, 1)',
+                                    borderWidth: 1,
+                                    barPercentage: 0.6,
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        labels: {
+                                            color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: {
+                                            color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        },
+                                        ticks: {
+                                            color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
             });
         </script>
     @endpush
