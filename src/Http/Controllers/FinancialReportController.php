@@ -26,12 +26,8 @@ class FinancialReportController extends Controller
     {
         $currentYear = date('Y');
         
-        // Helper to get won leads query
-        // Debugging: Log the query or result count if needed.
-        // \Log::info('Checking Won Leads for Year: ' . $currentYear);
-        
         $wonLeadsQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_stages', 'leads.lead_stage_id', '=', 'lead_stages.id')
+            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
             ->where('lead_stages.code', 'won')
             ->whereYear('leads.closed_at', $currentYear);
 
@@ -95,7 +91,7 @@ class FinancialReportController extends Controller
                 $productsData = \Webkul\Lead\Models\LeadProduct::query()
                     ->select('lead_products.product_id', 'lead_products.name', \DB::raw('SUM(lead_products.qty) as total_qty'), \DB::raw('SUM(lead_products.price * lead_products.qty) as total_amount'))
                     ->join('leads', 'lead_products.lead_id', '=', 'leads.id')
-                    ->join('lead_stages', 'leads.lead_stage_id', '=', 'lead_stages.id')
+                    ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
                     ->where('lead_stages.code', 'won') // Only won leads
                     ->whereIn('lead_products.product_id', $productIds)
                     ->whereYear('leads.closed_at', $currentYear)
