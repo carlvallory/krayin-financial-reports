@@ -22,76 +22,15 @@ class FinancialReportController extends Controller
         $this->productRepository = $productRepository;
     }
 
-    public function debug()
-    {
-        $currentYear = date('Y');
-        
-        $wonLeadsQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
-            ->where('lead_pipeline_stages.code', 'won')
-            ->whereYear('leads.closed_at', $currentYear);
-            
-        echo "<h1>Deep Debug</h1>";
-        
-        // 1. Check Total Revenue
-        $queryClone = clone $wonLeadsQuery;
-        echo "<h2>Total Revenue Query</h2>";
-        echo "<p>SQL: " . $queryClone->toSql() . "</p>";
-        echo "<p>Bindings: " . json_encode($queryClone->getBindings()) . "</p>";
-        
-        try {
-            $sum = $queryClone->sum('leads.lead_value'); // Specify table to be safe
-            echo "<p><strong>Result SUM: {$sum}</strong></p>";
-        } catch (\Exception $e) {
-            echo "<p style='color:red'>Error: " . $e->getMessage() . "</p>";
-        }
-        
-        // 2. Test without Year filter
-        echo "<h2>Test: No Year Filter</h2>";
-        $noYearQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
-            ->where('lead_pipeline_stages.code', 'won');
-        
-        echo "<p>Count: " . $noYearQuery->count() . "</p>";
 
-        // 3. Test without Code filter (Just Join)
-        echo "<h2>Test: Just Join (No Code or Year)</h2>";
-        $justJoinQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id');
-            
-        echo "<p>Count: " . $justJoinQuery->count() . "</p>";
-
-        // 4. Test Raw Join
-        echo "<h2>Test: DB Facade Join</h2>";
-        $rawCount = \DB::table('leads')
-            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
-            ->where('lead_pipeline_stages.code', 'won')
-            ->count();
-        echo "<p>Raw DB Count: " . $rawCount . "</p>";
-
-        // 3. Check Monthly Sales (Chart)
-        echo "<h2>Monthly Sales Query</h2>";
-        try {
-            $monthlySales = (clone $wonLeadsQuery)
-                ->selectRaw('MONTH(leads.closed_at) as month, SUM(lead_value) as total')
-                ->groupBy('month')
-                ->pluck('total', 'month')
-                ->toArray();
-            echo "<pre>" . print_r($monthlySales, true) . "</pre>";
-        } catch (\Exception $e) {
-             echo "<p style='color:red'>Error: " . $e->getMessage() . "</p>";
-        }
-
-        die();
-    }
 
     public function index()
     {
         $currentYear = date('Y');
         
         $wonLeadsQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
-            ->where('lead_stages.code', 'won')
+            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+            ->where('lead_pipeline_stages.code', 'won')
             ->whereYear('leads.closed_at', $currentYear);
 
         // KPI: Total Revenue This Year
