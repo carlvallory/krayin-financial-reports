@@ -24,77 +24,46 @@ class FinancialReportController extends Controller
 
     public function debug()
     {
-        $stages = \Webkul\Lead\Models\Stage::all();
-        $leadsCount = \Webkul\Lead\Models\Lead::count();
         $currentYear = date('Y');
         
-        $wonStage = $stages->where('code', 'won')->first();
-        
-        $wonLeadsCount = 0;
-        $wonLeadsThisYearCount = 0;
-        $sampleLeads = [];
-        
-        if ($wonStage) {
-            $wonLeadsCount = \Webkul\Lead\Models\Lead::where('lead_pipeline_stage_id', $wonStage->id)->count();
+        // REPLICATE THE MAIN QUERY EXACTLY
+        $wonLeadsQuery = \Webkul\Lead\Models\Lead::query()
+            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
+            ->where('lead_stages.code', 'won')
+            ->whereYear('leads.closed_at', $currentYear);
             
-            $wonLeadsThisYearCount = \Webkul\Lead\Models\Lead::where('lead_pipeline_stage_id', $wonStage->id)
-                ->whereYear('closed_at', $currentYear)
-                ->count();
-                
-            $sampleLeads = \Webkul\Lead\Models\Lead::where('lead_pipeline_stage_id', $wonStage->id)
-                ->whereYear('closed_at', $currentYear)
-                ->limit(5)
-                ->get();
+        echo "<h1>Deep Debug</h1>";
+        
+        // 1. Check Total Revenue
+        $queryClone = clone $wonLeadsQuery;
+        echo "<h2>Total Revenue Query</h2>";
+        // echo "<p>SQL: " . $queryClone->toSql() . "</p>";
+        // echo "<p>Bindings: " . json_encode($queryClone->getBindings()) . "</p>";
+        
+        try {
+            $sum = $queryClone->sum('lead_value');
+            echo "<p><strong>Result SUM: {$sum}</strong></p>";
+        } catch (\Exception $e) {
+            echo "<p style='color:red'>Error: " . $e->getMessage() . "</p>";
         }
         
-        // Check for leads with ANY closed_at this year
-        $anyLeadsThisYear = \Webkul\Lead\Models\Lead::whereYear('closed_at', $currentYear)->count();
+        // 2. Check Count
+        $count = (clone $wonLeadsQuery)->count();
+        echo "<p><strong>Result COUNT: {$count}</strong></p>";
 
-        echo "<h1>Debug Info</h1>";
-        echo "<h2>Stages</h2>";
-        echo "<ul>";
-        foreach ($stages as $stage) {
-            echo "<li>ID: {$stage->id} - Code: {$stage->code} - Name: {$stage->name}</li>";
+        // 3. Check Monthly Sales (Chart)
+        echo "<h2>Monthly Sales Query</h2>";
+        try {
+            $monthlySales = (clone $wonLeadsQuery)
+                ->selectRaw('MONTH(leads.closed_at) as month, SUM(lead_value) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+            echo "<pre>" . print_r($monthlySales, true) . "</pre>";
+        } catch (\Exception $e) {
+             echo "<p style='color:red'>Error: " . $e->getMessage() . "</p>";
         }
-        echo "</ul>";
-        
-        echo "<h2>Leads Stats</h2>";
-        echo "<p>Total Leads: {$leadsCount}</p>";
-        echo "<p>Won Leads (All Time): {$wonLeadsCount}</p>";
-        echo "<p>Won Leads ({$currentYear}): {$wonLeadsThisYearCount}</p>";
-        echo "<p>Leads with closed_at in {$currentYear} (Any Stage): {$anyLeadsThisYear}</p>";
 
-        if (count($sampleLeads) > 0) {
-            echo "<h2>Sample Won Leads This Year</h2>";
-            echo "<table border='1'><tr><th>ID</th><th>Title</th><th>Value</th><th>Closed At</th><th>Stage ID</th></tr>";
-            foreach ($sampleLeads as $lead) {
-                echo "<tr>";
-                echo "<td>{$lead->id}</td>";
-                echo "<td>{$lead->title}</td>";
-                echo "<td>{$lead->lead_value}</td>";
-                echo "<td>{$lead->closed_at}</td>";
-                echo "<td>{$lead->lead_pipeline_stage_id}</td>";
-                echo "</tr>";
-            }
-            echo "</table>";
-        } else {
-             echo "<p>No won leads found for this year.</p>";
-             // Show some leads that SHOULD match if user says there are incomes
-             $potentialLeads = \Webkul\Lead\Models\Lead::orderBy('created_at', 'desc')->limit(5)->get();
-             echo "<h2>Recent Leads (Potential Mismatch?)</h2>";
-             echo "<table border='1'><tr><th>ID</th><th>Title</th><th>Value</th><th>Closed At</th><th>Stage ID</th></tr>";
-             foreach ($potentialLeads as $lead) {
-                echo "<tr>";
-                echo "<td>{$lead->id}</td>";
-                echo "<td>{$lead->title}</td>";
-                echo "<td>{$lead->lead_value}</td>";
-                echo "<td>{$lead->closed_at}</td>";
-                echo "<td>{$lead->lead_pipeline_stage_id}</td>";
-                echo "</tr>";
-            }
-            echo "</table>";
-        }
-        
         die();
     }
 
