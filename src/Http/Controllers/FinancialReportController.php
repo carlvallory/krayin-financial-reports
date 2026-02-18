@@ -88,14 +88,15 @@ class FinancialReportController extends Controller
                 $sectionData = [];
                 
                 // Calculate total per product in this section
-                $productsData = \Webkul\Lead\Models\LeadProduct::query()
-                    ->select('lead_products.product_id', 'lead_products.name', \DB::raw('SUM(lead_products.qty) as total_qty'), \DB::raw('SUM(lead_products.price * lead_products.qty) as total_amount'))
+                $productsData = \Webkul\Lead\Models\Product::query()
+                    ->select('lead_products.product_id', 'products.name', \DB::raw('SUM(lead_products.quantity) as total_qty'), \DB::raw('SUM(lead_products.price * lead_products.quantity) as total_amount'))
                     ->join('leads', 'lead_products.lead_id', '=', 'leads.id')
                     ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
+                    ->join('products', 'lead_products.product_id', '=', 'products.id')
                     ->where('lead_stages.code', 'won') // Only won leads
                     ->whereIn('lead_products.product_id', $productIds)
                     ->whereYear('leads.closed_at', $currentYear)
-                    ->groupBy('lead_products.product_id', 'lead_products.name')
+                    ->groupBy('lead_products.product_id', 'products.name')
                     ->get();
                     
                 $sectionTotalAmount = $productsData->sum('total_amount');
