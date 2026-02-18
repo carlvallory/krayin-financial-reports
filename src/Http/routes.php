@@ -7,4 +7,5 @@ Route::group(['middleware' => ['web', 'admin_locale', 'user'], 'prefix' => 'admi
     Route::get('', [FinancialReportController::class, 'index'])->name('krayin.financial-reports.index');
     Route::get('configure', [FinancialReportController::class, 'configure'])->name('krayin.financial-reports.configure');
     Route::post('configure', [FinancialReportController::class, 'storeConfiguration'])->name('krayin.financial-reports.configure.store');
+    Route::get('debug', [FinancialReportController::class, 'debug'])->name('krayin.financial-reports.debug');
 });

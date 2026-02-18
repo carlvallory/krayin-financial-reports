@@ -22,6 +22,82 @@ class FinancialReportController extends Controller
         $this->productRepository = $productRepository;
     }
 
+    public function debug()
+    {
+        $stages = \Webkul\Lead\Models\Stage::all();
+        $leadsCount = \Webkul\Lead\Models\Lead::count();
+        $currentYear = date('Y');
+        
+        $wonStage = $stages->where('code', 'won')->first();
+        
+        $wonLeadsCount = 0;
+        $wonLeadsThisYearCount = 0;
+        $sampleLeads = [];
+        
+        if ($wonStage) {
+            $wonLeadsCount = \Webkul\Lead\Models\Lead::where('lead_pipeline_stage_id', $wonStage->id)->count();
+            
+            $wonLeadsThisYearCount = \Webkul\Lead\Models\Lead::where('lead_pipeline_stage_id', $wonStage->id)
+                ->whereYear('closed_at', $currentYear)
+                ->count();
+                
+            $sampleLeads = \Webkul\Lead\Models\Lead::where('lead_pipeline_stage_id', $wonStage->id)
+                ->whereYear('closed_at', $currentYear)
+                ->limit(5)
+                ->get();
+        }
+        
+        // Check for leads with ANY closed_at this year
+        $anyLeadsThisYear = \Webkul\Lead\Models\Lead::whereYear('closed_at', $currentYear)->count();
+
+        echo "<h1>Debug Info</h1>";
+        echo "<h2>Stages</h2>";
+        echo "<ul>";
+        foreach ($stages as $stage) {
+            echo "<li>ID: {$stage->id} - Code: {$stage->code} - Name: {$stage->name}</li>";
+        }
+        echo "</ul>";
+        
+        echo "<h2>Leads Stats</h2>";
+        echo "<p>Total Leads: {$leadsCount}</p>";
+        echo "<p>Won Leads (All Time): {$wonLeadsCount}</p>";
+        echo "<p>Won Leads ({$currentYear}): {$wonLeadsThisYearCount}</p>";
+        echo "<p>Leads with closed_at in {$currentYear} (Any Stage): {$anyLeadsThisYear}</p>";
+
+        if (count($sampleLeads) > 0) {
+            echo "<h2>Sample Won Leads This Year</h2>";
+            echo "<table border='1'><tr><th>ID</th><th>Title</th><th>Value</th><th>Closed At</th><th>Stage ID</th></tr>";
+            foreach ($sampleLeads as $lead) {
+                echo "<tr>";
+                echo "<td>{$lead->id}</td>";
+                echo "<td>{$lead->title}</td>";
+                echo "<td>{$lead->lead_value}</td>";
+                echo "<td>{$lead->closed_at}</td>";
+                echo "<td>{$lead->lead_pipeline_stage_id}</td>";
+                echo "</tr>";
+            }
+            echo "</table>";
+        } else {
+             echo "<p>No won leads found for this year.</p>";
+             // Show some leads that SHOULD match if user says there are incomes
+             $potentialLeads = \Webkul\Lead\Models\Lead::orderBy('created_at', 'desc')->limit(5)->get();
+             echo "<h2>Recent Leads (Potential Mismatch?)</h2>";
+             echo "<table border='1'><tr><th>ID</th><th>Title</th><th>Value</th><th>Closed At</th><th>Stage ID</th></tr>";
+             foreach ($potentialLeads as $lead) {
+                echo "<tr>";
+                echo "<td>{$lead->id}</td>";
+                echo "<td>{$lead->title}</td>";
+                echo "<td>{$lead->lead_value}</td>";
+                echo "<td>{$lead->closed_at}</td>";
+                echo "<td>{$lead->lead_pipeline_stage_id}</td>";
+                echo "</tr>";
+            }
+            echo "</table>";
+        }
+        
+        die();
+    }
+
     public function index()
     {
         $currentYear = date('Y');
