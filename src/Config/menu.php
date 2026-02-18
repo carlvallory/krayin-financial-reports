@@ -4,7 +4,7 @@ return [
     [
         'key'        => 'financial_reports',
         'name'       => 'Informes',
-        'route'      => 'admin.financial_reports.index',
+        'route'      => 'krayin.financial-reports.index',
         'sort'       => 2,
         'icon-class' => 'icon-dollar', 
     ]
