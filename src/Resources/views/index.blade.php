@@ -56,7 +56,7 @@
             </div>
 
             <!-- Chart Section -->
-            <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" v-pre>
                 <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
                     <p class="text-base font-semibold text-gray-800 dark:text-white">Ventas Mensuales</p>
                 </div>
