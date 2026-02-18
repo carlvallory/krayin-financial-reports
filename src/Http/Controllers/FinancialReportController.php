@@ -26,10 +26,9 @@ class FinancialReportController extends Controller
     {
         $currentYear = date('Y');
         
-        // REPLICATE THE MAIN QUERY EXACTLY
         $wonLeadsQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
-            ->where('lead_stages.code', 'won')
+            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+            ->where('lead_pipeline_stages.code', 'won')
             ->whereYear('leads.closed_at', $currentYear);
             
         echo "<h1>Deep Debug</h1>";
@@ -50,23 +49,23 @@ class FinancialReportController extends Controller
         // 2. Test without Year filter
         echo "<h2>Test: No Year Filter</h2>";
         $noYearQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
-            ->where('lead_stages.code', 'won');
+            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+            ->where('lead_pipeline_stages.code', 'won');
         
         echo "<p>Count: " . $noYearQuery->count() . "</p>";
 
         // 3. Test without Code filter (Just Join)
         echo "<h2>Test: Just Join (No Code or Year)</h2>";
         $justJoinQuery = \Webkul\Lead\Models\Lead::query()
-            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id');
+            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id');
             
         echo "<p>Count: " . $justJoinQuery->count() . "</p>";
 
         // 4. Test Raw Join
         echo "<h2>Test: DB Facade Join</h2>";
         $rawCount = \DB::table('leads')
-            ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
-            ->where('lead_stages.code', 'won')
+            ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+            ->where('lead_pipeline_stages.code', 'won')
             ->count();
         echo "<p>Raw DB Count: " . $rawCount . "</p>";
 
@@ -155,9 +154,9 @@ class FinancialReportController extends Controller
                 $productsData = \Webkul\Lead\Models\Product::query()
                     ->select('lead_products.product_id', 'products.name', \DB::raw('SUM(lead_products.quantity) as total_qty'), \DB::raw('SUM(lead_products.price * lead_products.quantity) as total_amount'))
                     ->join('leads', 'lead_products.lead_id', '=', 'leads.id')
-                    ->join('lead_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_stages.id')
+                    ->join('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
                     ->join('products', 'lead_products.product_id', '=', 'products.id')
-                    ->where('lead_stages.code', 'won') // Only won leads
+                    ->where('lead_pipeline_stages.code', 'won') // Only won leads
                     ->whereIn('lead_products.product_id', $productIds)
                     ->whereYear('leads.closed_at', $currentYear)
                     ->groupBy('lead_products.product_id', 'products.name')
