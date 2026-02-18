@@ -162,8 +162,8 @@
                         datasets: [{
                             label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
                             data: @json($chartData),
-                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue-500 equivalent with opacity
+                            borderColor: 'rgba(59, 130, 246, 1)',
                             borderWidth: 1
                         }]
                     },

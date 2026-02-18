@@ -54,7 +54,7 @@ class FinancialReportController extends Controller
         // Prepare chart data array (1-12)
         $chartData = [];
         for ($i = 1; $i <= 12; $i++) {
-            $chartData[] = $monthlySales[$i] ?? 0;
+            $chartData[] = (float) ($monthlySales[$i] ?? 0);
         }
 
         // Table Data: Recent 5 Won Leads
