@@ -154,29 +154,44 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
+                console.log('Initializing Chart...');
+                console.log('Chart Object:', typeof Chart);
+                const chartData = @json($chartData);
+                console.log('Chart Data:', chartData);
+
                 const ctx = document.getElementById('monthlySalesChart').getContext('2d');
-                const monthlySalesChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-                        datasets: [{
-                            label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
-                            data: @json($chartData),
-                            backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue-500 equivalent with opacity
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true
+                if (!ctx) {
+                    console.error('Canvas context not found!');
+                    return;
+                }
+
+                try {
+                    const monthlySalesChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                            datasets: [{
+                                label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
+                                data: chartData,
+                                backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue-500 equivalent with opacity
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                    console.log('Chart instance created:', monthlySalesChart);
+                } catch (e) {
+                    console.error('Error creating chart:', e);
+                }
             });
         </script>
     @endpush
