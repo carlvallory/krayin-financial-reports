@@ -142,18 +142,20 @@ class FinancialReportController extends Controller
             'sections.*.products' => 'nullable|array',
         ]);
 
-        // Save to core config
-        // Using core()->getConfigData to read, but saving might need a repository or DB call if Krayin doesn't have a direct 'setConfigData' helper exposed easily locally. 
-        // Standard Krayin/Bagisto uses CoreConfigRepository.
-        
-        $configRepository = app(\Webkul\Core\Repositories\CoreConfigRepository::class);
-        
-        $configRepository->create([
-            'code' => 'krayin_financial_reports.settings.custom_sections',
-            'value' => json_encode($data['sections']),
-            'channel_code' => null, // Default
-            'locale_code' => null, // Default
-        ]);
+        $code = 'krayin_financial_reports.settings.custom_sections';
+        $value = json_encode($data['sections']);
+
+        $config = \Webkul\Core\Models\CoreConfig::where('code', $code)->first();
+
+        if ($config) {
+            $config->value = $value;
+            $config->save();
+        } else {
+            \Webkul\Core\Models\CoreConfig::create([
+                'code' => $code,
+                'value' => $value,
+            ]);
+        }
 
         session()->flash('success', 'Configuration saved successfully.');
 
