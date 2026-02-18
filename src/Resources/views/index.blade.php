@@ -60,8 +60,8 @@
                 <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
                     <p class="text-base font-semibold text-gray-800 dark:text-white">Ventas Mensuales</p>
                 </div>
-                <div class="p-4">
-                    <canvas id="monthlySalesChart" style="width: 100%; height: 300px;"></canvas>
+                <div class="p-4 relative" style="height: 300px;">
+                    <canvas id="monthlySalesChart"></canvas>
                 </div>
             </div>
 
@@ -151,47 +151,60 @@
     </div>
 
     @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
-                console.log('Initializing Chart...');
-                console.log('Chart Object:', typeof Chart);
-                const chartData = @json($chartData);
-                console.log('Chart Data:', chartData);
-
                 const ctx = document.getElementById('monthlySalesChart').getContext('2d');
-                if (!ctx) {
-                    console.error('Canvas context not found!');
-                    return;
+                
+                // Destroy existing chart if any (though this is page load)
+                if (window.myMonthlyChart) {
+                    window.myMonthlyChart.destroy();
                 }
 
-                try {
-                    const monthlySalesChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-                            datasets: [{
-                                label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
-                                data: chartData,
-                                backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue-500 equivalent with opacity
-                                borderColor: 'rgba(59, 130, 246, 1)',
-                                borderWidth: 1
-                            }]
+                window.myMonthlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                        datasets: [{
+                            label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
+                            data: @json($chartData),
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1,
+                            barPercentage: 0.6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
+                                }
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'
+                                },
+                                ticks: {
+                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563'
                                 }
                             }
                         }
-                    });
-                    console.log('Chart instance created:', monthlySalesChart);
-                } catch (e) {
-                    console.error('Error creating chart:', e);
-                }
+                    }
+                });
             });
         </script>
     @endpush
