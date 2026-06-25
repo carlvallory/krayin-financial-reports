@@ -111,8 +111,10 @@ Plugin WC → lead (created_at = fecha pedido, gracias al fix §4; net_value ví
 
 ## 9. Fuera de alcance (YAGNI)
 
+- **Endpoint REST de tasas.** Decidido 2026-06-25: el único consumidor inicial es el propio CRM, que accede al mirror **internamente** vía el resolver `getRateForDate()` (sin HTTP). El endpoint REST (GET por fecha / latest / rango, autenticado con Bearer como el resto del REST API de Krayin) se agregará cuando exista un consumidor **externo** real (plugin u otros sistemas internos). Para que sumarlo sea trivial, el resolver/servicio de tasas debe quedar detrás de una **interfaz limpia y desacoplada** en `KrayinNetValue` (un controller REST futuro solo la envuelve).
 - Persistencia de la moneda elegida en el toggle.
 - Distinción AM/PM (no existe en la fuente oficial).
 - Otras monedas además de USD/PYG.
+- Conversión en tiempo real al recibir el lead (listener) — descartada: la tasa de cierre del día recién existe a la tarde; se usa backfill programado.
 - Poblar `branch`/`sale_variation`/`order_type` (columnas de branch_fields que el plugin aún no envía) — no son parte de este feature.
 - Integración de fuentes alternativas (Frankfurter, etc.) — descartadas (Frankfurter no tiene PYG).
