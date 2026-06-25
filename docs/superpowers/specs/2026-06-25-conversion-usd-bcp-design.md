@@ -2,7 +2,9 @@
 
 **Fecha:** 2026-06-25
 **Estado:** Aprobado, pendiente de plan de implementación
-**Repos afectados:** `KrayinFinancialReports` (principal), `KrayinWoocommerce` (fix prerequisito)
+**Repos afectados:** `KrayinNetValue` (mirror de tasas + conversión), `KrayinFinancialReports` (reporte/UI), `KrayinWoocommerce` (fix prerequisito)
+
+> **Nota de arquitectura (decidido 2026-06-25):** el mirror de tasas y la conversión viven en `KrayinNetValue` (capa de datos, dueña de las columnas `net_value`/`usd_rate`/`total_usd` y del `LeadSaveListener`). `KrayinFinancialReports` queda como capa de reporte que solo lee `total_usd` ya poblada. Dirección de dependencia: reporte → datos. La conversión se hace por **backfill programado**, no por listener en tiempo real.
 
 ---
 
@@ -40,6 +42,8 @@ Fuentes:
 | Tasa por pedido | Tasa de cierre del **día del pedido** (`created_at`) | Requisito del negocio |
 | Fallback finde/feriado | **Último día hábil previo** | Coincide con el comportamiento del BCP |
 | Conversión | **Denormalizada**: se guarda `usd_rate` y `total_usd` en el lead | Reutiliza columnas existentes; centraliza el fallback; reporte trivial y rápido |
+| Ubicación | Mirror + conversión en **`KrayinNetValue`**; reporte en **`KrayinFinancialReports`** | NetValue es dueño de las columnas USD; dependencia reporte→datos (no al revés) |
+| Timing | **Backfill programado** (nightly) + tras re-syncs; sin listener USD en tiempo real | La tasa del día recién existe a la tarde; consistencia eventual alcanza para el reporte y evita orden de listeners |
 | UI | **Toggle Vue PYG/USD**; arranca en PYG; no persiste | YAGNI |
 
 ## 4. Prerequisito: fix del bug de `created_at` (orden de providers)
@@ -53,20 +57,22 @@ Fuentes:
 
 ## 5. Componentes
 
-### 5.1 Mirror local de tasas (`KrayinFinancialReports`)
+### 5.1 Mirror local de tasas (`KrayinNetValue`)
 
-- **Tabla `exchange_rates`** (migración ya escrita, sin cambios): `date` único, `currency_from='USD'`, `currency_to='PYG'`, `rate` (cierre del día), `source` (`manual`/`bcp`), timestamps.
+> La migración `create_exchange_rates_table`, el modelo `ExchangeRate`, el fetcher, los comandos y el resolver se ubican en **`KrayinNetValue`**. (Hoy están como WIP en `KrayinFinancialReports`; el plan los mueve a `KrayinNetValue` antes de commitear, ya que ese WIP aún no está versionado.)
+
+- **Tabla `exchange_rates`** (migración ya escrita, sin cambios de schema): `date` único, `currency_from='USD'`, `currency_to='PYG'`, `rate` (cierre del día), `source` (`manual`/`bcp`), timestamps.
 - **Servicio fetcher BCP**: encapsula la consulta a la web del BCP y devuelve la cotización referencial de cierre. Aislado detrás de una interfaz para poder testear/cambiar fuente.
 - **Comando `exchange-rates:poll`**: corre **solo días hábiles, por la tarde** (después de 13:00). Hace **upsert por fecha** con la última lectura exitosa. Programado en el scheduler 2–4×/día como **reintento por resiliencia** (si el BCP está caído en un horario). No pollea finde/feriado.
 - **Comando `exchange-rates:backfill {year}`**: carga única del histórico del año desde la página de Histórico Anual del BCP. Idempotente (upsert por fecha).
 - **`ExchangeRate::getRateForDate($date)`** (mejorar el actual, que solo hace match exacto): cascada **fecha exacta → último día hábil previo disponible**. `getLatestRate()` se mantiene.
 
-### 5.2 Conversión denormalizada
+### 5.2 Conversión denormalizada por backfill programado (`KrayinNetValue`)
 
-- **Listener** en `lead.create.after` / `lead.update.after` (mismos hooks que usa `KrayinNetValue`): cuando hay `net_value` y `created_at`, calcula `usd_rate = getRateForDate(date(created_at))` y `total_usd = net_value / usd_rate`, y los persiste en las columnas existentes `leads.usd_rate` y `leads.total_usd`. Siempre lee del mirror local.
-  - **Ubicación:** el listener vive en `KrayinFinancialReports` (junto al mirror `exchange_rates` y al resolver `getRateForDate`). **Dependencia de orden:** debe ejecutarse **después** de que `net_value` ya esté persistido en el lead (lo puebla el `LeadSaveListener` de `KrayinNetValue` desde el EAV `custom_net_value`). El plan debe garantizar ese orden (prioridad de listeners o lectura directa del valor neto).
-- **Comando `leads:backfill-usd {year}`**: recalcula `usd_rate`/`total_usd` para los leads ganados (`stage='won'`) del año. Idempotente. **Soporta el re-sync masivo** porque solo lee del mirror local.
-- **Edge case:** lead cuya fecha de pedido aún no tiene tasa en el mirror (p. ej. pedido de hoy antes de que corra el poll de la tarde) → usa fallback al último día hábil; una corrida posterior de `leads:backfill-usd` lo reajusta cuando exista la tasa del día.
+- **Comando `leads:backfill-usd {year}`**: para cada lead ganado (`stage='won'`) del año, calcula `usd_rate = getRateForDate(date(created_at))` y `total_usd = net_value / usd_rate`, y los persiste en `leads.usd_rate` / `leads.total_usd`. Idempotente. **Siempre lee del mirror local** → soporta el re-sync masivo sin tocar el BCP.
+- **Programación:** se agenda **nightly** en el scheduler. Así un lead sincronizado hoy obtiene su `total_usd` en la corrida siguiente, cuando ya existe la tasa de cierre del día del pedido. Tras un re-sync masivo se puede correr el comando a mano para reflejar todo enseguida.
+- **Sin listener de USD en tiempo real.** El `LeadSaveListener` existente de `KrayinNetValue` se mantiene tal cual (mapea EAV→columna, incluido el mapeo dormido de `usd_rate`/`total_usd` por si el plugin algún día los enviara). La conversión la hace exclusivamente el backfill.
+- **Edge case:** lead cuya fecha de pedido aún no tiene tasa en el mirror → la corrida nightly usa fallback al último día hábil; cuando exista la tasa exacta, una corrida posterior la reajusta.
 
 ### 5.3 Reporte + UI (`KrayinFinancialReports`)
 
@@ -80,20 +86,20 @@ BCP (web)
   └─ exchange-rates:poll (días hábiles PM, reintentos)  ─┐
   └─ exchange-rates:backfill {year} (histórico anual)   ─┴─> exchange_rates (mirror local)
                                                                    │
-Plugin WC → lead (created_at = fecha pedido, gracias al fix §4)    │
-                                                                   ▼
-            listener lead.create/update.after ── getRateForDate(created_at) ──> usd_rate, total_usd en el lead
-            leads:backfill-usd {year} (retroactivo / re-sync) ─────┘
+Plugin WC → lead (created_at = fecha pedido, gracias al fix §4; net_value vía LeadSaveListener)
+                                                                   │
+   [KrayinNetValue] leads:backfill-usd {year} (nightly + tras re-sync)
+        └─ getRateForDate(created_at) → usd_rate, total_usd en el lead
                                                                    │
                                                                    ▼
-            FinancialReportController (SUM net_value / SUM total_usd) ──> index.blade (toggle PYG/USD)
+   [KrayinFinancialReports] FinancialReportController (SUM net_value / SUM total_usd) ──> index.blade (toggle PYG/USD)
 ```
 
 ## 7. Manejo de errores
 
 - **BCP no disponible** en una corrida del poll: se loguea y se reintenta en la siguiente corrida del día (resiliencia por diseño). No afecta sync ni reportes (leen del mirror).
 - **Fecha sin tasa** al convertir: fallback a último día hábil previo. Nunca deja un lead ganado sin `total_usd` mientras exista al menos una tasa previa en el mirror.
-- **Mirror vacío** (antes del primer backfill): `getRateForDate` devuelve null → el listener no escribe `total_usd` (queda null); `leads:backfill-usd` lo completa una vez cargado el histórico.
+- **Mirror vacío** (antes del primer backfill de tasas): `getRateForDate` devuelve null → `leads:backfill-usd` deja `total_usd` en null y lo completa en una corrida posterior, una vez cargado el histórico.
 
 ## 8. Testing
 
