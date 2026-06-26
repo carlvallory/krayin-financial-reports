@@ -33,20 +33,20 @@ class FinancialReportController extends Controller
             ->where('lead_pipeline_stages.code', 'won')
             ->whereYear('leads.closed_at', $currentYear);
 
-        // KPI: Total Revenue This Year
-        $totalRevenue = (clone $wonLeadsQuery)->sum('lead_value');
+        // KPI: Total Revenue This Year (Using Net Value)
+        $totalRevenue = (clone $wonLeadsQuery)->sum('net_value');
 
         // KPI: Total Won Leads Count
         $totalWonLeads = (clone $wonLeadsQuery)->count();
 
-        // KPI: This Month Revenue
+        // KPI: This Month Revenue (Using Net Value)
         $thisMonthRevenue = (clone $wonLeadsQuery)
             ->whereMonth('leads.closed_at', date('m'))
-            ->sum('lead_value');
+            ->sum('net_value');
 
-        // Chart Data: Monthly Sales
+        // Chart Data: Monthly Sales (Using Net Value)
         $monthlySales = (clone $wonLeadsQuery)
-            ->selectRaw('MONTH(leads.closed_at) as month, SUM(lead_value) as total')
+            ->selectRaw('MONTH(leads.closed_at) as month, SUM(net_value) as total')
             ->groupBy('month')
             ->pluck('total', 'month')
             ->toArray();
@@ -113,7 +113,28 @@ class FinancialReportController extends Controller
             }
         }
 
-        return view('krayin-financial-reports::index', compact('totalRevenue', 'totalWonLeads', 'thisMonthRevenue', 'chartData', 'recentLeads', 'customSections'));
+        // KPIs en USD (Valor Neto convertido, denormalizado en leads.total_usd)
+        $totalRevenueUsd = (float) (clone $wonLeadsQuery)->sum('total_usd');
+
+        $thisMonthRevenueUsd = (float) (clone $wonLeadsQuery)
+            ->whereMonth('leads.closed_at', date('m'))
+            ->sum('total_usd');
+
+        $monthlySalesUsd = (clone $wonLeadsQuery)
+            ->selectRaw('MONTH(leads.closed_at) as month, SUM(total_usd) as total')
+            ->groupBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
+
+        $chartDataUsd = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $chartDataUsd[] = (float) ($monthlySalesUsd[$i] ?? 0);
+        }
+
+        return view('krayin-financial-reports::index', compact(
+            'totalRevenue', 'totalWonLeads', 'thisMonthRevenue', 'chartData', 'recentLeads', 'customSections',
+            'totalRevenueUsd', 'thisMonthRevenueUsd', 'chartDataUsd'
+        ));
     }
 
     public function configure()

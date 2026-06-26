@@ -21,7 +21,16 @@
 
     <div class="mt-3.5 flex gap-4 max-xl:flex-wrap">
         <div class="flex flex-1 flex-col gap-4 max-xl:flex-auto">
-            
+
+            <!-- Toggle de Moneda (PYG/USD) -->
+            <div class="flex items-center gap-2">
+                <button onclick="window.dispatchEvent(new CustomEvent('set-currency',{detail:'PYG'}))"
+                        class="secondary-button">PYG</button>
+                <button onclick="window.dispatchEvent(new CustomEvent('set-currency',{detail:'USD'}))"
+                        class="secondary-button">USD</button>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Moneda: <span id="currency-label">PYG</span></span>
+            </div>
+
             <!-- KPI Cards -->
             <div class="flex gap-4 max-sm:flex-wrap">
                 <!-- Revenue Stats -->
@@ -30,7 +39,8 @@
                         <p class="text-base font-semibold text-gray-600 dark:text-gray-300">Ingresos Totales (Año)</p>
                     </div>
                     <div class="flex items-center gap-1.5 overflow-hidden text-3xl font-bold text-gray-800 dark:text-white">
-                        {{ core()->formatBasePrice($totalRevenue) }}
+                        <span data-pyg>{{ core()->formatBasePrice($totalRevenue) }}</span>
+                        <span data-usd style="display:none">USD {{ number_format($totalRevenueUsd, 2) }}</span>
                     </div>
                 </div>
 
@@ -50,7 +60,8 @@
                         <p class="text-base font-semibold text-gray-600 dark:text-gray-300">Ingresos Este Mes</p>
                     </div>
                     <div class="flex items-center gap-1.5 overflow-hidden text-3xl font-bold text-gray-800 dark:text-white">
-                        {{ core()->formatBasePrice($thisMonthRevenue) }}
+                        <span data-pyg>{{ core()->formatBasePrice($thisMonthRevenue) }}</span>
+                        <span data-usd style="display:none">USD {{ number_format($thisMonthRevenueUsd, 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -164,12 +175,24 @@
                 data() {
                     return {
                         chart: undefined,
-                        chartData: @json($chartData),
+                        chartDataPyg: @json($chartData),
+                        chartDataUsd: @json($chartDataUsd),
+                        currency: 'PYG',
                     }
                 },
 
                 mounted() {
                     this.prepare();
+
+                    window.addEventListener('set-currency', (e) => {
+                        this.currency = e.detail;
+                        document.getElementById('currency-label').textContent = e.detail;
+                        document.querySelectorAll('[data-pyg]').forEach(el => el.style.display = e.detail === 'PYG' ? '' : 'none');
+                        document.querySelectorAll('[data-usd]').forEach(el => el.style.display = e.detail === 'USD' ? '' : 'none');
+                        this.chart.data.datasets[0].data = e.detail === 'USD' ? this.chartDataUsd : this.chartDataPyg;
+                        this.chart.data.datasets[0].label = 'Ventas (' + e.detail + ')';
+                        this.chart.update();
+                    });
                 },
 
                 methods: {
@@ -181,8 +204,8 @@
                             data: {
                                 labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
                                 datasets: [{
-                                    label: 'Ventas ({{ core()->currencySymbol(core()->getBaseCurrencyCode()) }})',
-                                    data: this.chartData,
+                                    label: 'Ventas (PYG)',
+                                    data: this.chartDataPyg,
                                     backgroundColor: 'rgba(59, 130, 246, 0.6)',
                                     borderColor: 'rgba(59, 130, 246, 1)',
                                     borderWidth: 1,
