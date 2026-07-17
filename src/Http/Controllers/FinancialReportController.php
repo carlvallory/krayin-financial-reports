@@ -161,28 +161,37 @@ class FinancialReportController extends Controller
     public function storeConfiguration(\Illuminate\Http\Request $request)
     {
         $data = $request->validate([
-            'sections' => 'required|array',
-            'sections.*.title' => 'nullable|string',
-            'sections.*.products' => 'nullable|array',
+            'sections'                => 'nullable|array',
+            'sections.*.title'        => 'nullable|string',
+            'sections.*.products'     => 'nullable|array',
+            'product_tags'            => 'nullable|array',
+            'product_tags.*.name'     => 'nullable|string',
+            'product_tags.*.products' => 'nullable|array',
         ]);
 
-        $code = 'krayin_financial_reports.settings.custom_sections';
-        $value = json_encode($data['sections']);
-
-        $config = \Webkul\Core\Models\CoreConfig::where('code', $code)->first();
-
-        if ($config) {
-            $config->value = $value;
-            $config->save();
-        } else {
-            \Webkul\Core\Models\CoreConfig::create([
-                'code' => $code,
-                'value' => $value,
-            ]);
+        // Product tags → mapa {nombre: [productIds del CRM]}, descartando tags sin nombre.
+        $tags = [];
+        foreach ($data['product_tags'] ?? [] as $tag) {
+            $name = trim($tag['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $tags[$name] = array_values(array_map('intval', $tag['products'] ?? []));
         }
+
+        $this->saveConfig('krayin_financial_reports.settings.custom_sections', $data['sections'] ?? []);
+        $this->saveConfig('krayin_financial_reports.settings.product_tags', $tags);
 
         session()->flash('success', 'Configuration saved successfully.');
 
         return redirect()->route('krayin.financial-reports.index');
+    }
+
+    protected function saveConfig(string $code, $value): void
+    {
+        \Webkul\Core\Models\CoreConfig::updateOrCreate(
+            ['code' => $code],
+            ['value' => json_encode($value)]
+        );
     }
 }
