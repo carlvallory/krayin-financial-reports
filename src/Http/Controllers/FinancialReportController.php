@@ -167,6 +167,10 @@ class FinancialReportController extends Controller
             'product_tags'            => 'nullable|array',
             'product_tags.*.name'     => 'nullable|string',
             'product_tags.*.products' => 'nullable|array',
+            'points_of_sale'                => 'nullable|array',
+            'points_of_sale.*.wc_user_id'   => 'nullable',
+            'points_of_sale.*.sucursal'     => 'nullable|string',
+            'points_of_sale.*.merch_point'  => 'nullable|string',
         ]);
 
         // Product tags → mapa {nombre: [productIds del CRM]}, descartando tags sin nombre.
@@ -179,8 +183,32 @@ class FinancialReportController extends Controller
             $tags[$name] = array_values(array_map('intval', $tag['products'] ?? []));
         }
 
+        // Puntos de venta → lista, descartando filas incompletas o con wc_user_id no entero.
+        $pos  = [];
+        $seen = [];
+        foreach ($data['points_of_sale'] ?? [] as $row) {
+            $wcUserId = $row['wc_user_id'] ?? '';
+            $sucursal = trim($row['sucursal'] ?? '');
+            $merch    = trim($row['merch_point'] ?? '');
+
+            if ($sucursal === '' || $merch === '' || ! ctype_digit((string) $wcUserId)) {
+                continue;
+            }
+
+            $wcUserId = (int) $wcUserId;
+
+            if (in_array($wcUserId, $seen, true)) {
+                return redirect()->back()->withInput()
+                    ->with('error', 'Hay Puntos de Venta con el mismo WC User ID.');
+            }
+
+            $seen[] = $wcUserId;
+            $pos[]  = ['wc_user_id' => $wcUserId, 'sucursal' => $sucursal, 'merch_point' => $merch];
+        }
+
         $this->saveConfig('krayin_financial_reports.settings.custom_sections', $data['sections'] ?? []);
         $this->saveConfig('krayin_financial_reports.settings.product_tags', $tags);
+        $this->saveConfig('krayin_financial_reports.settings.points_of_sale', $pos);
 
         session()->flash('success', 'Configuration saved successfully.');
 
