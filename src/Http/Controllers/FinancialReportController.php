@@ -140,22 +140,31 @@ class FinancialReportController extends Controller
     public function configure()
     {
         $products = $this->productRepository->all();
-        
-        // Load existing config
-        $configuration = core()->getConfigData('krayin_financial_reports.settings.custom_sections');
-         if (is_string($configuration)) {
-            $configuration = json_decode($configuration, true);
+
+        $sections = core()->getConfigData('krayin_financial_reports.settings.custom_sections');
+        if (is_string($sections)) {
+            $sections = json_decode($sections, true);
         }
-        
-        // Ensure structure for 3 sections
-        $sections = $configuration ?? [];
+        $sections = $sections ?? [];
         for ($i = 1; $i <= 3; $i++) {
-            if (!isset($sections[$i])) {
+            if (! isset($sections[$i])) {
                 $sections[$i] = ['title' => '', 'products' => []];
             }
         }
 
-        return view('krayin-financial-reports::configure', compact('products', 'sections'));
+        $productTags = core()->getConfigData('krayin_financial_reports.settings.product_tags');
+        if (is_string($productTags)) {
+            $productTags = json_decode($productTags, true);
+        }
+        $productTags = $productTags ?: [];
+
+        $pointsOfSale = core()->getConfigData('krayin_financial_reports.settings.points_of_sale');
+        if (is_string($pointsOfSale)) {
+            $pointsOfSale = json_decode($pointsOfSale, true);
+        }
+        $pointsOfSale = $pointsOfSale ?: [];
+
+        return view('krayin-financial-reports::configure', compact('products', 'sections', 'productTags', 'pointsOfSale'));
     }
 
     public function storeConfiguration(\Illuminate\Http\Request $request)
